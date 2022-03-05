@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HW 3</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <!-- <script src="https://d3js.org/topojson.v3.min.js"></script> -->
+</head>
+<body>
+    <h3>test</h3>
+    
+    
+    <script>
+        
+        const requestMap = async function () {
+            const data = await d3.csv("data/zillow_pittsburgh.csv");
+            console.log(data);
+        };
+        requestMap()
+        
+    </script>
+</body>
+</html>
