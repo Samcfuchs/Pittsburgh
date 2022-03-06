@@ -9,14 +9,18 @@
 </head>
 <body>
     <h3>test</h3>
-    
-    
+       
     <script>
         
+        const requestData = async function () {
+            const data = await d3.csv("data/pitt-neighborhoods.geojson");
+            console.log(data);
+        };
         const requestMap = async function () {
             const data = await d3.csv("data/zillow_pittsburgh.csv");
             console.log(data);
         };
+        requestData()
         requestMap()
         
     </script>
