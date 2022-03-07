@@ -7,13 +7,51 @@
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://d3js.org/topojson.v3.min.js"></script>
     <style>
+        html{
+            font-family: Arial, Helvetica, sans-serif;
+        }
         .outline {
             stroke-width: 1px;
-            stroke: #161616;
+            stroke: #2b1c16;
             fill: none;
         }
         #map{
-            background-color: rgb(221, 193, 150);
+            background-color: #f7ead7;
+        }
+        .tool{
+            background-color: white;
+            border: 1px solid black;
+            opacity: 0.8;
+            position: relative;
+            min-width: 100px;
+            max-width: 300px;
+            /* height:100px; */
+            border-radius: 10px;
+            top: 590px;
+            left: 10px;
+        }
+        .tooltip{
+            text-align: center;
+            height: 25px;
+            line-height: 25px;
+            margin-top: 0;
+            /* font-variant: all-small-caps; */
+        }
+        .label{
+            font-size: 9pt;
+            text-align: center;
+            margin-bottom: 0;
+        }
+        #house-tip{
+            background-color: white;
+            border: 1px solid black;
+            opacity: 0.8;
+            position: absolute;
+            font-size: 9pt;
+            padding:2px 5px;
+        }
+        #house-tip p{
+            margin: 0;
         }
     </style>
 </head>
@@ -21,104 +59,181 @@
     
     <h3>test</h3>
     <!-- <svg id="map" width="800" height="600"></svg> -->
-    
-    <script>
-        
-        const w = 800;
-        const h = 600;
-        var svg_map = d3.select("body")
-        .append("svg").attr("id","map")
-        .attr("width", w)
-        .attr("height", h)
-        var g = svg_map.append("g")
-        const width_map = w;
-        const height_map = h;
-        console.log(width_map)
-        const margin_map = { top: 20, right: 20, bottom: 20, left: 20 };
-        const mapWidth = width_map - margin_map.left - margin_map.right;
-        const mapHeight = height_map - margin_map.top - margin_map.bottom;
-        
-        
-        const requestMap = async function () {
-            const data = await d3.json("data/pittsburgh.geojson");
-            console.log(data);
-            
-            var projection = d3.geoMercator().fitSize([mapWidth, mapHeight], data);
-            var path = d3.geoPath().projection(projection);
-            
-            let pittMap = g.selectAll("path.neighborhood").data(data.features)
-            .join("path")
-            .attr("class", "neighborhood")
-            .attr("d", path)
-            .style("fill", "#f5f5f5")
-            .style("stroke", "#82680a")
-            .style("stroke-width","0.5")
-            
-            let active = '';
-            
-            pittMap.on("mouseover", function(event,d) {
-                console.log(d.properties.name)
-                console.log(this)
-                active = this
-                d3.select(this).style("fill","orange")
-            })
-            pittMap.on("mouseout",function(event,d) {
-                active = ''
-                d3.select(this).style("fill","#f5f5f5")
-            })
-            pittMap.on("click", clicked)
-            
-            const houses = await d3.csv("data/zillow_pittsburgh.csv");
-            houses.forEach(d=>{
-                console.log(projection(([d.Longitude, d.Latitude]))[0])
-            })
-            let circles = g.selectAll("circle").data(houses)
-            .join("circle")
-            .attr("cx", d => projection(([d.Longitude, d.Latitude]))[0] + "px")
-            .attr("cy", d => projection(([d.Longitude, d.Latitude]))[1] + "px")
-            .attr("r", 3)
-            .attr("class", "point")
-            .style("opacity", "0.5")
-            .style("fill", "#006633")
-            .style("stroke", "black")
-            .style("stroke-width", 0.5);
-            circles.on("mouseover", function(event,d) {
-                console.log(d)
-            })
-            var k = 1;
-            
-            var zoom = d3.zoom()
-            .scaleExtent([1, 8])
-            .on('zoom', function(event) {
-                k = event.transform.k
-                g.selectAll('path')
-                .attr('transform', event.transform).style("stroke-width", 0.5 / k);
-                g.selectAll('circle')
-                .attr('transform', event.transform)
-                .style("r", 3 / k)
-                .style("stroke-width", 0.5 / k);
-            });
-            svg_map.call(zoom);
+    <div class="tool">
+        <p class="label">Neighborhood:</p>
+        <p class="tooltip"></p>
+    </div>
+</div>
 
-            function clicked(event, d) {
+<script>
+    const tooltip = d3.select("div.tooltip")
+    
+    const w = 800;
+    const h = 600;
+    var svg_map = d3.select("body")
+    .append("svg").attr("id","map")
+    .attr("width", w)
+    .attr("height", h)
+    var g = svg_map.append("g")
+    const width_map = w;
+    const height_map = h;
+    const margin_map = { top: 20, right: 20, bottom: 20, left: 20 };
+    const mapWidth = width_map - margin_map.left - margin_map.right;
+    const mapHeight = height_map - margin_map.top - margin_map.bottom;
+    var focused = false;
+    
+    const requestMap = async function () {
+        var k = 1;
+        const data = await d3.json("data/pittsburgh.geojson");
+        console.log(data);
+        
+        var projection = d3.geoMercator().fitSize([mapWidth, mapHeight], data);
+        var path = d3.geoPath().projection(projection);
+        
+        let pittMap = g.selectAll("path.neighborhood").data(data.features)
+        .join("path")
+        .attr("clicked","false")
+        .attr("class", "neighborhood")
+        .attr("d", path)
+        .style("fill", "#f5f5f5")
+        .style("stroke", "#82680a")
+        .style("stroke-width","0.5")
+        var active = ''
+        pittMap.on("mouseover", hoverPitt)
+        pittMap.on("mouseout",function(event,d) {
+            if(focused===false){
+                active = d
+                var selected = d3.select(this) 
+                pittMap.on("mouseover", function(event,d){ // check if mouse is entering another neighborhood
+                    if(d!==active){ // only update hover if the user is over a different area
+                        selected.style("fill","#f5f5f5")
+                        // reset active area, highlight new hovered area
+                        active = d
+                        d3.select(this).style("fill","#f0ae00") 
+                        d3.selectAll("p.tooltip").text(d.properties.name);
+                    }
+                })
+            }
+        })
+        pittMap.on("mouseover", hoverPitt)
+        pittMap.on("click", clicked)
+        
+        function hoverPitt(event, d){
+            if(focused===false){
+                active = d
+                // only allow mouseovers when not selecting specific area
+                d3.select(this).style("fill","#f0ae00")
+                d3.selectAll("p.tooltip").text(d.properties.name);
+            }
+        }
+        
+        const houses = await d3.csv("data/zillow_pittsburgh.csv");
+        let circles = g.selectAll("circle").data(houses)
+        .join("circle")
+        .attr("cx", d => projection(([d.Longitude, d.Latitude]))[0] + "px")
+        .attr("cy", d => projection(([d.Longitude, d.Latitude]))[1] + "px")
+        .attr("r", 4 / k)
+        .attr("class", "point")
+        .attr("selected",false)
+        .style("opacity", "0.5")
+        .style("fill", "#006633")
+        .style("stroke", "black")
+        .style("stroke-width", 0.5);
+        circles.on("mouseover", houseTip)
+        circles.on("mouseout",  removeTip)
+        circles.on("click", selectHouse)
+        
+        function selectHouse(event, d){
+            // if the user clicks on a house, highlight it and show details
+            d3.select(this).attr("r",10)
+            .attr("selected", true).style("fill","limegreen").style("opacity","1")
+            
+        }
+        
+        var zoom = d3.zoom()
+        .scaleExtent([1, 8])
+        .on('zoom', function(event) {
+            k = event.transform.k
+            g.selectAll('path')
+            .attr('transform', event.transform).style("stroke-width", 0.5 / k);
+            g.selectAll('circle')
+            .attr('transform', event.transform)
+            .attr("r", 4 / k)
+            .style("stroke-width", 0.5 / k)
+            g.selectAll('circle')
+            .on("mouseover", houseTip)
+            .on("mouseout", removeTip);
+        });
+        
+        svg_map.call(zoom);
+        
+        function houseTip(event, d){
+            // create a tooltip for the house
+            let house = d3.select(this)
+            
+            let mouseCoords = [event.clientX, event.clientY]
+            let houseTip = d3.select("body").append("div").attr("id","house-tip")
+            houseTip.style("left",mouseCoords[0]+"px").style("top" ,mouseCoords[1]+"px")
+            houseTip.append("p").text("Beds: "+ d.Bedrooms)
+            .append("p").text("Baths: "+ d.Bathroom)
+            .append("p").text("Price: "+ d["Sale Amount"])
+            
+            // we don't want the hover to alter size/color on a selected point
+            if(house.attr("selected")===false){
+                house.attr("r", 7 / k).style("opacity","1")
+            }
+            
+        }
+        
+        function removeTip(event, d){
+            // get rid of the house tooltip
+            let house = d3.select(this)
+            // don't alter size/color if the house is selected
+            if(house.attr("selected")===false){
+                house.attr("r", 4 / k).style("opacity","0.5")
+            }
+            d3.selectAll("#house-tip").remove()
+        }
+        
+        function clicked(event, d) { // zoom in on neighborhood on click
             const [[x0, y0], [x1, y1]] = path.bounds(d);
             event.stopPropagation();
-            pittMap.transition().style("fill", "#f5f5f5");
-            d3.select(this).transition().style("fill", "orange");
-            svg_map.transition().duration(750).call(
-            zoom.transform,
-            d3.zoomIdentity
-            .translate(w / 2, h / 2)
-            .scale(Math.min(8, 0.9 / Math.max((x1 - x0) / w, (y1 - y0) / h)))
-            .translate(-(x0 + x1) / 2, -(y0 + y1) / 2),
-            d3.pointer(event, svg_map.node())
-            );
+            if(d3.select(this).attr("clicked")==="false"){
+                // if the clicked on area isn't active, zoom to it & highlight
+                focused = true;
+                d3.select(this).attr("clicked","true")
+                pittMap.transition().style("fill", "#baa98f");
+                d3.select(this).transition().style("fill", "#f0ae00");
+                svg_map.transition().duration(750).call(
+                zoom.transform,
+                d3.zoomIdentity
+                .translate(w / 2, h / 2)
+                .scale(Math.min(8, 0.9 / Math.max((x1 - x0) / w, (y1 - y0) / h)))
+                .translate(-(x0 + x1) / 2, -(y0 + y1) / 2),
+                d3.pointer(event, svg_map.node())
+                );
+            } else if(d3.select(this).attr("clicked")==="true"){
+                // if the area is active, zoom back out and un-highlight
+                focused = false;
+                pittMap.transition().style("fill", "#f5f5f5");
+                d3.select(this).attr("clicked","false")
+                const [[x0, y0], [x1, y1]] = path.bounds(data);
+                svg_map.transition().duration(750).call(
+                zoom.transform,
+                d3.zoomIdentity
+                .translate(w / 2, h / 2)
+                .scale(Math.min(8, 0.9 / Math.max((x1 - x0) / w, (y1 - y0) / h)))
+                .translate(-(x0 + x1) / 2, -(y0 + y1) / 2),
+                d3.pointer(event, svg_map.node())
+                );
+            } 
+            
         }
-        };
-        requestMap()
-
-        
-        
-    </script>
+    };
+    requestMap()
+    
+    
+    
+</script>
 </body>
 </html>
