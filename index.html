@@ -5,22 +5,84 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HW 3</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
-    <!-- <script src="https://d3js.org/topojson.v3.min.js"></script> -->
+    <script src="https://d3js.org/topojson.v3.min.js"></script>
+    <style>
+        .outline {
+            stroke-width: 1px;
+            stroke: #161616;
+            fill: none;
+        }
+        #map{
+            background-color: rgb(221, 193, 150);
+        }
+    </style>
 </head>
 <body>
+    
     <h3>test</h3>
-       
+    <!-- <svg id="map" width="800" height="600"></svg> -->
+    
     <script>
+        const w = 800;
+        const h = 600;
+        var svg_map = d3.select("body")
+        .append("svg").attr("id","map")
+        .attr("width", w)
+        .attr("height", h)
+        var g = svg_map.append("g")
+        const width_map = w;
+        const height_map = h;
+        console.log(width_map)
+        const margin_map = { top: 20, right: 20, bottom: 20, left: 20 };
+        const mapWidth = width_map - margin_map.left - margin_map.right;
+        const mapHeight = height_map - margin_map.top - margin_map.bottom;
         
-        const requestData = async function () {
-            const data = await d3.csv("data/pitt-neighborhoods.geojson");
-            console.log(data);
-        };
+        
         const requestMap = async function () {
-            const data = await d3.csv("data/zillow_pittsburgh.csv");
+            const data = await d3.json("data/pittsburgh.geojson");
             console.log(data);
+            
+            var projection = d3.geoMercator().fitSize([mapWidth, mapHeight], data);
+            var path = d3.geoPath().projection(projection);
+            
+            let pittMap = g.selectAll("path.neighborhood").data(data.features)
+            .join("path")
+            .attr("class", "neighborhood")
+            .attr("d", path)
+            .style("fill", "#f5f5f5")
+            .style("stroke", "#82680a")
+            .style("stroke-width","0.5")
+            
+            const houses = await d3.csv("data/zillow_pittsburgh.csv");
+            houses.forEach(d=>{
+                console.log(projection(([d.Longitude, d.Latitude]))[0])
+            })
+            g.selectAll("circle").data(houses)
+                    .join("circle")
+                    .attr("cx", d => projection(([d.Longitude, d.Latitude]))[0] + "px")
+                    .attr("cy", d => projection(([d.Longitude, d.Latitude]))[1] + "px")
+                    .attr("r", 3)
+                    .attr("class", "point")
+                    .style("opacity", "0.5")
+                    .style("fill", "#006633")
+                    .style("stroke", "black")
+                    .style("stroke-width", 0.5);
+            var k = 1;
+            
+            var zoom = d3.zoom()
+            .scaleExtent([1, 8])
+            .on('zoom', function(event) {
+                k = event.transform.k
+                console.log(event.transform.k)
+                g.selectAll('path')
+                .attr('transform', event.transform).style("stroke-width", 0.5 / k);
+                g.selectAll('circle')
+                .attr('transform', event.transform)
+                .style("r", 3 / k)
+                .style("stroke-width", 0.5 / k);
+            });
+            svg_map.call(zoom);
         };
-        requestData()
         requestMap()
         
     </script>
