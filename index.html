@@ -105,7 +105,7 @@
                 active = d
                 var selected = d3.select(this) 
                 pittMap.on("mouseover", function(event,d){ // check if mouse is entering another neighborhood
-                    if(d!==active){ // only update hover if the user is over a different area
+                    if(d!==active && focused==false){ // only update hover if the user is over a different area
                         selected.style("fill","#f5f5f5")
                         // reset active area, highlight new hovered area
                         active = d
