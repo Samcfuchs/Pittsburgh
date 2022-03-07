@@ -23,6 +23,7 @@
     <!-- <svg id="map" width="800" height="600"></svg> -->
     
     <script>
+        
         const w = 800;
         const h = 600;
         var svg_map = d3.select("body")
@@ -53,27 +54,43 @@
             .style("stroke", "#82680a")
             .style("stroke-width","0.5")
             
+            let active = '';
+            
+            pittMap.on("mouseover", function(event,d) {
+                console.log(d.properties.name)
+                console.log(this)
+                active = this
+                d3.select(this).style("fill","orange")
+            })
+            pittMap.on("mouseout",function(event,d) {
+                active = ''
+                d3.select(this).style("fill","#f5f5f5")
+            })
+            pittMap.on("click", clicked)
+            
             const houses = await d3.csv("data/zillow_pittsburgh.csv");
             houses.forEach(d=>{
                 console.log(projection(([d.Longitude, d.Latitude]))[0])
             })
-            g.selectAll("circle").data(houses)
-                    .join("circle")
-                    .attr("cx", d => projection(([d.Longitude, d.Latitude]))[0] + "px")
-                    .attr("cy", d => projection(([d.Longitude, d.Latitude]))[1] + "px")
-                    .attr("r", 3)
-                    .attr("class", "point")
-                    .style("opacity", "0.5")
-                    .style("fill", "#006633")
-                    .style("stroke", "black")
-                    .style("stroke-width", 0.5);
+            let circles = g.selectAll("circle").data(houses)
+            .join("circle")
+            .attr("cx", d => projection(([d.Longitude, d.Latitude]))[0] + "px")
+            .attr("cy", d => projection(([d.Longitude, d.Latitude]))[1] + "px")
+            .attr("r", 3)
+            .attr("class", "point")
+            .style("opacity", "0.5")
+            .style("fill", "#006633")
+            .style("stroke", "black")
+            .style("stroke-width", 0.5);
+            circles.on("mouseover", function(event,d) {
+                console.log(d)
+            })
             var k = 1;
             
             var zoom = d3.zoom()
             .scaleExtent([1, 8])
             .on('zoom', function(event) {
                 k = event.transform.k
-                console.log(event.transform.k)
                 g.selectAll('path')
                 .attr('transform', event.transform).style("stroke-width", 0.5 / k);
                 g.selectAll('circle')
@@ -82,8 +99,25 @@
                 .style("stroke-width", 0.5 / k);
             });
             svg_map.call(zoom);
+
+            function clicked(event, d) {
+            const [[x0, y0], [x1, y1]] = path.bounds(d);
+            event.stopPropagation();
+            pittMap.transition().style("fill", "#f5f5f5");
+            d3.select(this).transition().style("fill", "orange");
+            svg_map.transition().duration(750).call(
+            zoom.transform,
+            d3.zoomIdentity
+            .translate(w / 2, h / 2)
+            .scale(Math.min(8, 0.9 / Math.max((x1 - x0) / w, (y1 - y0) / h)))
+            .translate(-(x0 + x1) / 2, -(y0 + y1) / 2),
+            d3.pointer(event, svg_map.node())
+            );
+        }
         };
         requestMap()
+
+        
         
     </script>
 </body>
