@@ -139,7 +139,7 @@
         .style("opacity", "0.5")
         .style("fill", "#006633")
         .style("stroke", "black")
-        .style("stroke-width", 0.5);
+        .style("stroke-width", 0.5 / k);
         circles.on("mouseover", houseTip)
         circles.on("mouseout",  removeTip)
         circles.on("click", selectHouse)
@@ -158,14 +158,15 @@
                     .attr("r", 4 / k) // and size...
                     .attr("selected",false) // and deselect
                     .style("opacity", "0.5") 
+                    .attr("class", "point")
                 }
                 selectedHouse = d3.select(this)
                 tracker = d
                 console.log(this, d3.select(d))
                 houseSelected = true // track that a house is selected
                 // if the user clicks on a house, highlight it and show details
-                d3.select(this).attr("r",10)
-                .attr("selected", true).style("fill","limegreen").style("opacity","1")
+                d3.select(this).attr("r", 10 / k)
+                .attr("selected", true).style("fill","limegreen").style("opacity","1").attr("class", "selected")
                 // Make a panel with details
                 
                 // make a details panel
@@ -198,9 +199,13 @@
             .attr('transform', event.transform)
             .attr("r", 4 / k)
             .style("stroke-width", 0.5 / k)
+            g.selectAll('circle.selected')
+            .attr('transform', event.transform)
+            .attr("r", 10 / k)
             g.selectAll('circle')
-            .on("mouseover", houseTip)
-            .on("mouseout", removeTip);
+            .on("mouseover",houseTip)
+            .on("mouseout", removeTip)
+            .on("click",    selectHouse);
         });
         
         svg_map.call(zoom);
@@ -221,7 +226,7 @@
             if(house.attr("selected")==="false"){
                 house.attr("r", 6 / k).style("opacity","1")
             }else{
-                house.attr("r", 9/k).style("opacity","1")
+                house.attr("r", 10 / k).style("opacity","1")
             }
             
         }
