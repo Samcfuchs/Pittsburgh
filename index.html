@@ -27,8 +27,9 @@
             max-width: 300px;
             /* height:100px; */
             border-radius: 10px;
-            top: 590px;
+            top: 490px;
             left: 10px;
+            margin-top:-60px;
         }
         .tooltip{
             text-align: center;
@@ -69,7 +70,7 @@
     const tooltip = d3.select("div.tooltip")
     
     const w = 800;
-    const h = 600;
+    const h = 500;
     var svg_map = d3.select("body")
     .append("svg").attr("id","map")
     .attr("width", w)
@@ -143,10 +144,47 @@
         circles.on("mouseout",  removeTip)
         circles.on("click", selectHouse)
         
+        var selectedHouse = ''
+        tracker = ''
+        
         function selectHouse(event, d){
-            // if the user clicks on a house, highlight it and show details
-            d3.select(this).attr("r",10)
-            .attr("selected", true).style("fill","limegreen").style("opacity","1")
+            d3.select("#house-detail").remove()
+            if (tracker !== d) {
+                console.log("trying to add new")
+                // if the newly selected house is not the current one...
+                if(selectedHouse !== ''){ // only deselect if something was there
+                    selectedHouse
+                    .style("fill","#006633") //reset color...
+                    .attr("r", 4 / k) // and size...
+                    .attr("selected",false) // and deselect
+                    .style("opacity", "0.5") 
+                }
+                selectedHouse = d3.select(this)
+                tracker = d
+                console.log(this, d3.select(d))
+                houseSelected = true // track that a house is selected
+                // if the user clicks on a house, highlight it and show details
+                d3.select(this).attr("r",10)
+                .attr("selected", true).style("fill","limegreen").style("opacity","1")
+                // Make a panel with details
+                
+                // make a details panel
+                let houseDetails = d3.select("body").append("div").attr("id","house-detail")
+                houseDetails.append("p").text("Beds: "+ d.Bedrooms)
+                .append("p").text("Baths: "+ d.Bathroom)
+                .append("p").text("Price: "+ d["Sale Amount"])
+                
+            } else { // if the same house is clicked
+                console.log("trying to deselect")
+                d3.select(this)
+                .style("fill","#006633") //reset color...
+                .attr("r", 4 / k) // and size...
+                .attr("selected",false) // and deselect
+                .style("opacity", "0.5") 
+                houseSelected = false // deselect it
+                selectedHouse = '' // nothing is selected
+                tracker = ''
+            }
             
         }
         
@@ -172,15 +210,18 @@
             let house = d3.select(this)
             
             let mouseCoords = [event.clientX, event.clientY]
+            
             let houseTip = d3.select("body").append("div").attr("id","house-tip")
-            houseTip.style("left",mouseCoords[0]+"px").style("top" ,mouseCoords[1]+"px")
+            houseTip.style("left",mouseCoords[0]+"px").style("top" ,mouseCoords[1]+20+"px")
             houseTip.append("p").text("Beds: "+ d.Bedrooms)
             .append("p").text("Baths: "+ d.Bathroom)
             .append("p").text("Price: "+ d["Sale Amount"])
             
             // we don't want the hover to alter size/color on a selected point
-            if(house.attr("selected")===false){
-                house.attr("r", 7 / k).style("opacity","1")
+            if(house.attr("selected")==="false"){
+                house.attr("r", 6 / k).style("opacity","1")
+            }else{
+                house.attr("r", 9/k).style("opacity","1")
             }
             
         }
@@ -189,7 +230,7 @@
             // get rid of the house tooltip
             let house = d3.select(this)
             // don't alter size/color if the house is selected
-            if(house.attr("selected")===false){
+            if(house.attr("selected")=="false"){
                 house.attr("r", 4 / k).style("opacity","0.5")
             }
             d3.selectAll("#house-tip").remove()
