@@ -5,11 +5,14 @@ Open the website by running `python server.py` and opening
 
 ## TODO
 - [ ] Deselect neighborhoods on mouseout and update the detail panel
-- [ ] Add some useful information to the detail panel
-- [ ] Animate filtering behavior
-- [ ] Build out the detail view for houses
-- [ ] Reposition the neighborhood box
+    - this was intentional, b/c otherwise the neighborhood deselected when hovering circles. idk if we can make it disappear only if the mose leaves the mouse, but tbh seems like too much work for a minor issue
+- [X] Add some useful information to the detail panel
+- [X] Animate filtering behavior
+eh kinda did this
+- [X] Build out the detail view for houses
+- [X] Reposition the neighborhood box
 - [ ] Add some more filters (which ones?)
+  - checkboxes for home type, input range for beds and baths
 - [ ] Make numbers on the filter bar nicer
-- [ ] Style the filter pane
-- [ ] Style the detail pane
+- [X] Style the filter pane
+- [X] Style the detail pane

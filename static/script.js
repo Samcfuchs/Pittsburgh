@@ -1,7 +1,7 @@
 const tooltip = d3.select("div.tooltip")
 
 const w = 800;
-const h = 500;
+const h = 400;
 var svg_map = d3.select("div.map")
 .append("svg").attr("id","map")
 .attr("width", w)
@@ -58,6 +58,8 @@ const requestMap = async function () {
             d3.selectAll("p.tooltip").text(d.properties.name);
         }
     }
+
+    d3.selectAll("div.tool").style("top", h-10+"px")
     
     const houses = await d3.csv("data/zillow_pittsburgh.csv");
     console.log(houses)
@@ -80,6 +82,7 @@ const requestMap = async function () {
     var selectedHouse = ''
     tracker = ''
     // Create the div for the house details
+    d3.select("div.map").append("h3").attr("class","detailhead").text("Home Details")
     let houseDetails = d3.select("div.map").append("div").attr("id","house-detail")
     
     function selectHouse(event, d){
@@ -97,7 +100,6 @@ const requestMap = async function () {
             }
             selectedHouse = d3.select(this)
             tracker = d
-            console.log(this, d3.select(d))
             houseSelected = true // track that a house is selected
             // if the user clicks on a house, highlight it and show details
             d3.select(this).attr("r", 10 / k)
@@ -109,9 +111,13 @@ const requestMap = async function () {
             // Make a panel with details
             
             // make a details panel
+            houseDetails.append("p").text("Address: "+ d["Street Address"])
+            houseDetails.append("p").text("Type: "+ d["Property Type"])
             houseDetails.append("p").text("Beds: "+ d.Bedrooms)
-                .append("p").text("Baths: "+ d.Bathroom)
-                .append("p").text("Price: "+ d["Sale Amount"])
+            houseDetails.append("p").text("Baths: "+ d.Bathroom)
+            houseDetails.append("p").text("Square Feet: "+ d["Finished Size (Sq.Ft.)"])
+            houseDetails.append("p").text("Lot Size: "+ d["Lot Size (Sq.Ft.)"]+" sq. ft.")
+            houseDetails.append("p").text("Year Built: "+ d["Year Built"])
             
         } else { // if the same house is clicked
             console.log("trying to deselect")
@@ -239,14 +245,14 @@ const requestMap = async function () {
 
         let wrapper = container.append('div').attr('class', 'control');
         wrapper.append('div').text(label).attr("class","filterlabel");
+       
         let canvas = wrapper.append('svg').attr('width', sliderWidth)
-                                          .attr('height', sliderHeight+20)
+                                          .attr('height', sliderHeight+70)
                                           .attr('attribute', attribute);
         let areaLayer = canvas.append('g');
         // canvas.append('g').attr('transfrorm',`translate(0, ${sliderHeight})`)
         //                   .call(xAxis);
-        canvas.append("g").attr("transform",`translate(0,${sliderHeight})`)
-                          .call(xAxis);
+        
 
         histoGen = d3.histogram().domain( extent ).thresholds(10)
 
@@ -257,7 +263,7 @@ const requestMap = async function () {
                         length: counts[0].length });
 
         let yScale = d3.scalePow().exponent(1/2).domain( d3.extent(counts, d => d.length) )
-                                    .range([sliderHeight, 4]);
+                                    .range([sliderHeight, 10]);
 
         let area = d3.area().x(d => xSliderScale(d.x1))
           .y0(yScale(0))
@@ -265,30 +271,41 @@ const requestMap = async function () {
           .curve(d3.curveNatural);
         areaLayer.append('path').datum(counts)
           .attr('class', 'area')
-          .attr('d', area);
+          .attr('d', area)
+          .style("fill","green");
 
         // basic filter func to later get replaced by user input
         let filterFunc = d => true;
         filters[attribute] = filterFunc;
 
         var brush = d3.brushX().extent([[10,0],                           // Upper left corner
-                                        [sliderWidth-10, sliderHeight]])  // Lower right corner
+                                        [sliderWidth-10, sliderHeight+10]])  // Lower right corner
                                .on('brush end', brushMoved);
 
+        let labelsDiv=wrapper.append("div").attr("class","label-container")
+        let minDiv = labelsDiv.append("span").attr("class","min")
+        minDiv.append("h3").attr("class","min").text("Minimum")
+        let startTxt = minDiv.append("p").attr("class","min").text(parseInt(extent[0]))
+
+        let maxDiv = labelsDiv.append("span").attr("class","max")
+        maxDiv.append("h3").attr("class","max").text("Maximum")
+        let endTxt = maxDiv.append("p").attr("class","max").text(parseInt(extent[1]))
+        
+
         function brushMoved(event) {
-
+            
             if (event.selection !== null) {
-
                 // Run scales in reverse to get data values for the ends of the brush
                 let start = xSliderScale.invert( event.selection[0] );
                 let end = xSliderScale.invert( event.selection[1] );
+
+                startTxt.text(parseInt(start))
+                endTxt.text(parseInt(end))
 
                 // Overwrite old filter
                 // TODO this can probably be optimized
                 let filterFunc = d => (parseFloat(d[attribute]) >= start) && (parseFloat(d[attribute]) <= end)
                 filters[attribute] = filterFunc;
-
-                console.log(filterFunc)
 
                 // TODO Update plots in accordance with filters
                 updateMap(filters)
@@ -300,7 +317,9 @@ const requestMap = async function () {
             }
         }
 
-        canvas.append('g').attr('class','brush').call(brush);
+        let brushedArea = canvas.append('g').attr('class','brush').call(brush);
+        canvas.append("g").attr("transform",`translate(0,${sliderHeight})`)
+        .call(xAxis);
 
     }
 
@@ -316,10 +335,18 @@ const requestMap = async function () {
     function updateMap(filters) {
         // Just don't display points that can't pass the filters. Easier.
         // Maybe make this a class and then style the rejected points differently.
-        circles.transition().style('display', d => and(d,filters) ? 'block' : 'none')
+        circles.transition().style('opacity', d => and(d,filters) ? '0.5' : '0.05')
+        .style('pointer-events', d => and(d,filters) ? 'auto' : 'none').duration(100)
+        // circles.transition().style('fill', d => and(d,filters) ? 'purple' : 'green')
     }
 
-    makeSlider(d3.select('div#filters'), 'Price', 'Sale Amount', 400, 50)
+    makeSlider(d3.select('div#filters'), 'Price', 'Sale Amount', 400, 45)
+    makeSlider(d3.select('div#filters'), 'Year Built', 'Year Built', 400, 30)
+    makeSlider(d3.select('div#filters'), 'Size (sq. ft)', 'Finished Size (Sq.Ft.)', 400, 30)
+    makeSlider(d3.select('div#filters'), 'Size (sq. ft)', 'Finished Size (Sq.Ft.)', 400, 30)
+
+    updateMap()
+
 };
 requestMap()
     
