@@ -60,6 +60,7 @@ const requestMap = async function () {
     }
     
     const houses = await d3.csv("data/zillow_pittsburgh.csv");
+    console.log(houses)
     let circles = g.selectAll("circle").data(houses)
     .join("circle")
     .attr("cx", d => projection(([d.Longitude, d.Latitude]))[0] + "px")
@@ -82,7 +83,7 @@ const requestMap = async function () {
     let houseDetails = d3.select("body").append("div").attr("id","house-detail")
     
     function selectHouse(event, d){
-        d3.select("#house-detail").remove()
+        d3.select("#house-detail").html('')
         if (tracker !== d) {
             console.log("trying to add new")
             // if the newly selected house is not the current one...
@@ -104,10 +105,11 @@ const requestMap = async function () {
                 .style("fill","limegreen")
                 .style("opacity","1")
                 .attr("class", "selected")
+                .raise()
             // Make a panel with details
             
             // make a details panel
-                houseDetails.append("p").text("Beds: "+ d.Bedrooms)
+            houseDetails.append("p").text("Beds: "+ d.Bedrooms)
                 .append("p").text("Baths: "+ d.Bathroom)
                 .append("p").text("Price: "+ d["Sale Amount"])
             
@@ -221,6 +223,103 @@ const requestMap = async function () {
         } 
         
     }
+
+    let filters = {}
+    function makeSlider(container, label, attribute, sliderWidth, sliderHeight) {
+
+        var values = houses.map(d => Number(d[attribute]));
+        let extent = d3.extent(values);
+
+        console.log('building slider')
+        let xSliderScale = d3.scaleLinear()
+          .domain(extent)
+          .range([10, sliderWidth - 10])
+        let xAxis = d3.axisBottom(xSliderScale)
+          .tickFormat(d3.format('d'))
+
+        let wrapper = container.append('div').attr('class', 'control');
+        wrapper.append('div').text(label);
+        let canvas = wrapper.append('svg').attr('width', sliderWidth)
+                                          .attr('height', sliderHeight+20)
+                                          .attr('attribute', attribute);
+        let areaLayer = canvas.append('g');
+        // canvas.append('g').attr('transfrorm',`translate(0, ${sliderHeight})`)
+        //                   .call(xAxis);
+        canvas.append("g").attr("transform",`translate(0,${sliderHeight})`)
+                          .call(xAxis);
+
+        histoGen = d3.histogram().domain( extent ).thresholds(10)
+
+        let counts = histoGen(values);
+
+        counts.unshift({ x0: 0,
+                        x1: counts[0].x0,
+                        length: counts[0].length });
+
+        let yScale = d3.scalePow().exponent(1/2).domain( d3.extent(counts, d => d.length) )
+                                    .range([sliderHeight, 4]);
+
+        let area = d3.area().x(d => xSliderScale(d.x1))
+          .y0(yScale(0))
+          .y1(d => yScale(d.length))
+          .curve(d3.curveNatural);
+        areaLayer.append('path').datum(counts)
+          .attr('class', 'area')
+          .attr('d', area);
+
+        // basic filter func to later get replaced by user input
+        let filterFunc = d => true;
+        filters[attribute] = filterFunc;
+
+        var brush = d3.brushX().extent([[10,0],                           // Upper left corner
+                                        [sliderWidth-10, sliderHeight]])  // Lower right corner
+                               .on('brush end', brushMoved);
+
+        function brushMoved(event) {
+
+            if (event.selection !== null) {
+
+                // Run scales in reverse to get data values for the ends of the brush
+                let start = xSliderScale.invert( event.selection[0] );
+                let end = xSliderScale.invert( event.selection[1] );
+
+                // Overwrite old filter
+                // TODO this can probably be optimized
+                let filterFunc = d => (parseFloat(d[attribute]) >= start) && (parseFloat(d[attribute]) <= end)
+                filters[attribute] = filterFunc;
+
+                console.log(filterFunc)
+
+                // TODO Update plots in accordance with filters
+                updateMap(filters)
+            }
+            // If user clears filter go back to generic filter
+            else {
+                let filterFunc = d => true;
+                filters[attribute] = filterFunc;
+            }
+        }
+
+        canvas.append('g').attr('class','brush').call(brush);
+
+    }
+
+    function and(d, filters) {
+        // I hate javascript what a stupid language
+        let val = true
+        Object.values(filters).forEach(filter => {
+            val = val && filter(d)
+        })
+        return val
+    }
+
+    function updateMap(filters) {
+        // Just don't display points that can't pass the filters. Easier.
+        // Maybe make this a class and then style the rejected points differently.
+        circles.transition().style('display', d => and(d,filters) ? 'block' : 'none')
+    }
+
+    makeSlider(d3.select('div#filters'), 'Price', 'Sale Amount', 300, 50)
 };
 requestMap()
     

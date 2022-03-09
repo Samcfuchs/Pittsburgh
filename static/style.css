@@ -45,3 +45,12 @@ html {
 #house-tip p{
     margin: 0;
 }
+
+#house-detail {
+    border: 1px dashed red
+}
+
+#filters {
+    border: 1px dashed blue;
+    height: 200px
+}
