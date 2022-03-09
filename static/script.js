@@ -2,7 +2,7 @@ const tooltip = d3.select("div.tooltip")
 
 const w = 800;
 const h = 500;
-var svg_map = d3.select("body")
+var svg_map = d3.select("div.map")
 .append("svg").attr("id","map")
 .attr("width", w)
 .attr("height", h)
@@ -80,7 +80,7 @@ const requestMap = async function () {
     var selectedHouse = ''
     tracker = ''
     // Create the div for the house details
-    let houseDetails = d3.select("body").append("div").attr("id","house-detail")
+    let houseDetails = d3.select("div.map").append("div").attr("id","house-detail")
     
     function selectHouse(event, d){
         d3.select("#house-detail").html('')
@@ -152,7 +152,7 @@ const requestMap = async function () {
     
     svg_map.call(zoom);
     
-    let houseTip = d3.select("body").append("div").attr("id","house-tip")
+    let houseTip = d3.select("div.map").append("div").attr("id","house-tip")
 
     function refreshHouseTip(event, d){
         // create a tooltip for the house
@@ -238,7 +238,7 @@ const requestMap = async function () {
           .tickFormat(d3.format('d'))
 
         let wrapper = container.append('div').attr('class', 'control');
-        wrapper.append('div').text(label);
+        wrapper.append('div').text(label).attr("class","filterlabel");
         let canvas = wrapper.append('svg').attr('width', sliderWidth)
                                           .attr('height', sliderHeight+20)
                                           .attr('attribute', attribute);
@@ -319,7 +319,7 @@ const requestMap = async function () {
         circles.transition().style('display', d => and(d,filters) ? 'block' : 'none')
     }
 
-    makeSlider(d3.select('div#filters'), 'Price', 'Sale Amount', 300, 50)
+    makeSlider(d3.select('div#filters'), 'Price', 'Sale Amount', 400, 50)
 };
 requestMap()
     
