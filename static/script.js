@@ -232,7 +232,6 @@ const requestMap = async function () {
 
     let filters = {}
     function makeSlider(container, label, attribute, sliderWidth, sliderHeight) {
-
         let format = d3.format(",")
         if (label == "Price") format = d3.format("$,")
         if (label === 'Year Built') format = d3.format("")
@@ -279,6 +278,7 @@ const requestMap = async function () {
           .attr('class', 'area')
           .attr('d', area)
           .style("fill","green");
+
 
         // basic filter func to later get replaced by user input
         let filterFunc = d => true;
@@ -332,13 +332,20 @@ const requestMap = async function () {
         }
 
         let brushedArea = canvas.append('g').attr('class','brush').call(brush);
-        canvas.append("g").attr("transform",`translate(0,${sliderHeight})`)
+
+        if(label=="Size (sq. ft)"){
+            let axis = canvas.append("g").attr("class","axis"+label).attr("transform",`translate(0,${sliderHeight+3})`)
         .call(xAxis);
+        }else{
+            let axis = canvas.append("g").attr("class","axis"+label).attr("transform",`translate(0,${sliderHeight})`)
+        .call(xAxis);
+        }
 
     }
 
     function and(d, filters) {
         // I hate javascript what a stupid language
+        let circles = []
         let val = true
         Object.values(filters).forEach(filter => {
             val = val && filter(d)
@@ -349,14 +356,37 @@ const requestMap = async function () {
     function updateMap(filters) {
         // Just don't display points that can't pass the filters. Easier.
         // Maybe make this a class and then style the rejected points differently.
-        circles.transition().style('opacity', d => and(d,filters) ? '0.5' : '0.05')
+        let filteredCircles = circles.transition().style('opacity', d => and(d,filters) ? '0.5' : '0.05')
+        .attr("filteredout", d => and(d,filters) ? 'false' : 'true')
         .style('pointer-events', d => and(d,filters) ? 'auto' : 'none').duration(100)
-        // circles.transition().style('fill', d => and(d,filters) ? 'purple' : 'green')
     }
 
-    makeSlider(d3.select('div#filters'), 'Price', 'Sale Amount', 400, 45)
-    makeSlider(d3.select('div#filters'), 'Year Built', 'Year Built', 400, 30)
-    makeSlider(d3.select('div#filters'), 'Size (sq. ft)', 'Finished Size (Sq.Ft.)', 400, 30)
+    function getFiltered(){
+        filtered =
+        svg_map.selectAll("circle.point")
+        .filter(function() {
+            return d3.select(this).attr("filteredout") == "false"; // filter by single attribute
+        })
+        return(filtered)
+    }
+
+    // FILTERS
+
+    makeRange(d3.select('div#bedbath'), 'Bedrooms', 'Bedrooms')
+    makeRange(d3.select('div#bedbath'), 'Bathrooms', 'Bathroom')
+    d3.select('div#filters').append("hr")
+    makeCheckboxes(d3.select('#filters'), 'Class', 'Property Type')
+    d3.select('div#filters').append("hr")
+
+
+    makeSlider(d3.select('div#filters'), 'Price', 'Sale Amount', 400, 30)
+    d3.select('div#filters').append("hr")
+
+    makeSlider(d3.select('div#filters'), 'Year Built', 'Year Built', 400, 25)
+    d3.select('div#filters').append("hr")
+
+    makeSlider(d3.select('div#filters'), 'Size (sq. ft)', 'Finished Size (Sq.Ft.)', 400, 25)
+    
     //makeSlider(d3.select('div#filters'), 'Size (sq. ft)', 'Finished Size (Sq.Ft.)', 400, 30)
 
     function makeRange(container, label, attribute) {
@@ -372,15 +402,17 @@ const requestMap = async function () {
             .attr('min', extent[0])
             .attr('max', extent[1])
             .attr('class', 'range min')
-            .attr('placeholder', 'Minimum '+label)
+            .attr('placeholder', '0')
             .on('change', rangeUpdate)
+
+        wrapper.append("span").append("p").text(" - ")
 
         let max_input = wrapper.append('input')
             .attr('type','number')
             .attr('min', extent[0])
             .attr('max', extent[1])
             .attr('class', 'range min')
-            .attr('placeholder', 'Maximum '+label)
+            .attr('placeholder', extent[1])
             // This gives the input a starting value...but then you can't see
             // the helper text.
             //.attr('value', extent[1])
@@ -400,8 +432,6 @@ const requestMap = async function () {
         }
     }
 
-    makeRange(d3.select('div#filters'), 'Bedrooms', 'Bedrooms')
-
     function makeCheckboxes(container, label, attribute) {
         values = houses.map(d => d[attribute])
         let unique = new Set(values)
@@ -409,15 +439,17 @@ const requestMap = async function () {
 
         let wrapper = container.append('div').attr('class', 'control')
         wrapper.append('div').text(label).attr('class', 'checkboxlabel')
+        let boxesDiv = wrapper.append("div").attr("class","boxes")
+        
 
         unique.forEach(v => {
-            wrapper.append('input').attr('type','checkbox')
+            boxesDiv.append('input').attr('type','checkbox')
                 .attr('name', v)
                 .property('checked', 'true')
                 .on('input', checkboxUpdate)
-            wrapper.append('label').text(v).attr('class', 'valuelabel')
+            boxesDiv.append('label').text(v).attr('class', 'valuelabel')
                 .attr('for', v)
-            wrapper.append('br')
+            boxesDiv.append('br')
         })
 
         function checkboxUpdate() {
@@ -434,8 +466,7 @@ const requestMap = async function () {
             updateMap(filters)
         }
     }
-
-    makeCheckboxes(d3.select('#filters'), 'Class', 'Property Type')
+console.log(filters)
 
     updateMap(filters)
 
