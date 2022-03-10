@@ -365,7 +365,7 @@ const requestMap = async function () {
         console.log(extent)
 
         let wrapper = container.append('div').attr('class', 'control')
-        wrapper.append('div').text(label).attr('class', 'checkboxlabel')
+        wrapper.append('div').text(label).attr('class', 'rangelabel')
 
         let min_input = wrapper.append('input')
             .attr('type','number')
@@ -402,8 +402,43 @@ const requestMap = async function () {
 
     makeRange(d3.select('div#filters'), 'Bedrooms', 'Bedrooms')
 
+    function makeCheckboxes(container, label, attribute) {
+        values = houses.map(d => d[attribute])
+        let unique = new Set(values)
+        console.log(unique)
 
-    updateMap()
+        let wrapper = container.append('div').attr('class', 'control')
+        wrapper.append('div').text(label).attr('class', 'checkboxlabel')
+
+        unique.forEach(v => {
+            wrapper.append('input').attr('type','checkbox')
+                .attr('name', v)
+                .property('checked', 'true')
+                .on('input', checkboxUpdate)
+            wrapper.append('label').text(v).attr('class', 'valuelabel')
+                .attr('for', v)
+            wrapper.append('br')
+        })
+
+        function checkboxUpdate() {
+            let desired_values = {}
+            unique.forEach(v => {
+                desired_values[v] = wrapper.select(`input[name="${v}"]`)
+                                        .property('checked')
+            })
+
+            filters[attribute] = function(d) {
+                return desired_values[d[attribute]]
+            }
+
+            updateMap(filters)
+            //console.log(range)
+        }
+    }
+
+    makeCheckboxes(d3.select('#filters'), 'Class', 'Property Type')
+
+    updateMap(filters)
 
 };
 requestMap()
