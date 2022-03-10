@@ -111,3 +111,8 @@ p.min, p.max{
     padding-left: 20px;
     height: 590px;
 }
+
+#filters input.min {
+    width: 100px;
+    margin-right: 10px;
+}

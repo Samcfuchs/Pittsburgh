@@ -235,6 +235,7 @@ const requestMap = async function () {
 
         let format = d3.format(",")
         if (label == "Price") format = d3.format("$,")
+        if (label === 'Year Built') format = d3.format("")
 
         var values = houses.map(d => Number(d[attribute]));
         let extent = d3.extent(values);
@@ -244,6 +245,9 @@ const requestMap = async function () {
           .range([10, sliderWidth - 10])
         let xAxis = d3.axisBottom(xSliderScale)
           .tickFormat(d3.format('.2s'))
+        if (label === "Year Built" || label === "Size (sq. ft)") {
+            xAxis.tickFormat(d3.format(''))
+        }
 
         let wrapper = container.append('div').attr('class', 'control');
         wrapper.append('div').text(label).attr("class","filterlabel");
@@ -355,9 +359,51 @@ const requestMap = async function () {
     makeSlider(d3.select('div#filters'), 'Size (sq. ft)', 'Finished Size (Sq.Ft.)', 400, 30)
     //makeSlider(d3.select('div#filters'), 'Size (sq. ft)', 'Finished Size (Sq.Ft.)', 400, 30)
 
+    function makeRange(container, label, attribute) {
+        values = houses.map(d => parseInt(d[attribute]))
+        let extent = d3.extent(values)
+        console.log(extent)
+
+        let wrapper = container.append('div').attr('class', 'control')
+        wrapper.append('div').text(label).attr('class', 'checkboxlabel')
+
+        let min_input = wrapper.append('input')
+            .attr('type','number')
+            .attr('min', extent[0])
+            .attr('max', extent[1])
+            .attr('class', 'range min')
+            .attr('placeholder', 'Minimum '+label)
+            .on('change', rangeUpdate)
+
+        let max_input = wrapper.append('input')
+            .attr('type','number')
+            .attr('min', extent[0])
+            .attr('max', extent[1])
+            .attr('class', 'range min')
+            .attr('placeholder', 'Maximum '+label)
+            // This gives the input a starting value...but then you can't see
+            // the helper text.
+            //.attr('value', extent[1])
+            .on('change', rangeUpdate)
+
+        function rangeUpdate() {
+            let range = [parseInt(min_input.node().value), parseInt(max_input.node().value)]
+
+            range = range.map((n,i) => isNaN(n) ? extent[i] : n)
+
+            filters[attribute] = function(d) {
+                return d[attribute] >= range[0] && d[attribute] <= range[1]
+            }
+
+            updateMap(filters)
+            //console.log(range)
+        }
+    }
+
+    makeRange(d3.select('div#filters'), 'Bedrooms', 'Bedrooms')
+
+
     updateMap()
 
 };
 requestMap()
-    
-    
