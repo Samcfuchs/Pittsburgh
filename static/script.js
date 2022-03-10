@@ -432,7 +432,6 @@ const requestMap = async function () {
             }
 
             updateMap(filters)
-            //console.log(range)
         }
     }
 

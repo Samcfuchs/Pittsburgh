@@ -11,10 +11,11 @@ Open the website by running `python server.py` and opening
 eh kinda did this
 - [X] Build out the detail view for houses
 - [X] Reposition the neighborhood box
-- [ ] Add some more filters (which ones?)
+- [X] Add some more filters (which ones?)
   - checkboxes for home type, input range for beds and baths
 - [X] Make numbers on the filter bar nicer
 - [X] Style the filter pane
 - [X] Style the detail pane
 - [ ] Update neighborhood label when moving between neighborhoods (without 
       zooming fully out)
+- [ ] I have a stretch goal idea for a really cool interaction where points are distinguished as you hover over filters
