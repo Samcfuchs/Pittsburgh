@@ -13,6 +13,8 @@ eh kinda did this
 - [X] Reposition the neighborhood box
 - [ ] Add some more filters (which ones?)
   - checkboxes for home type, input range for beds and baths
-- [ ] Make numbers on the filter bar nicer
+- [X] Make numbers on the filter bar nicer
 - [X] Style the filter pane
 - [X] Style the detail pane
+- [ ] Update neighborhood label when moving between neighborhoods (without 
+      zooming fully out)

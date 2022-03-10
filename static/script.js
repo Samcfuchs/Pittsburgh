@@ -233,15 +233,17 @@ const requestMap = async function () {
     let filters = {}
     function makeSlider(container, label, attribute, sliderWidth, sliderHeight) {
 
+        let format = d3.format(",")
+        if (label == "Price") format = d3.format("$,")
+
         var values = houses.map(d => Number(d[attribute]));
         let extent = d3.extent(values);
 
-        console.log('building slider')
         let xSliderScale = d3.scaleLinear()
           .domain(extent)
           .range([10, sliderWidth - 10])
         let xAxis = d3.axisBottom(xSliderScale)
-          .tickFormat(d3.format('d'))
+          .tickFormat(d3.format('.2s'))
 
         let wrapper = container.append('div').attr('class', 'control');
         wrapper.append('div').text(label).attr("class","filterlabel");
@@ -285,11 +287,15 @@ const requestMap = async function () {
         let labelsDiv=wrapper.append("div").attr("class","label-container")
         let minDiv = labelsDiv.append("span").attr("class","min")
         minDiv.append("h3").attr("class","min").text("Minimum")
-        let startTxt = minDiv.append("p").attr("class","min").text(parseInt(extent[0]))
+        let startTxt = minDiv.append("p").attr("class","min")
 
         let maxDiv = labelsDiv.append("span").attr("class","max")
         maxDiv.append("h3").attr("class","max").text("Maximum")
-        let endTxt = maxDiv.append("p").attr("class","max").text(parseInt(extent[1]))
+        let endTxt = maxDiv.append("p").attr("class","max")
+
+        startTxt.text(format(parseInt(extent[0])))
+        endTxt.text(format(parseInt(extent[1])))
+
         
 
         function brushMoved(event) {
@@ -299,8 +305,8 @@ const requestMap = async function () {
                 let start = xSliderScale.invert( event.selection[0] );
                 let end = xSliderScale.invert( event.selection[1] );
 
-                startTxt.text(parseInt(start))
-                endTxt.text(parseInt(end))
+                startTxt.text(format(parseInt(start)))
+                endTxt.text(format(parseInt(end)))
 
                 // Overwrite old filter
                 // TODO this can probably be optimized
@@ -314,6 +320,10 @@ const requestMap = async function () {
             else {
                 let filterFunc = d => true;
                 filters[attribute] = filterFunc;
+                let [start,end] = extent
+                startTxt.text(format(parseInt(start)))
+                endTxt.text(format(parseInt(end)))
+
             }
         }
 
@@ -343,7 +353,7 @@ const requestMap = async function () {
     makeSlider(d3.select('div#filters'), 'Price', 'Sale Amount', 400, 45)
     makeSlider(d3.select('div#filters'), 'Year Built', 'Year Built', 400, 30)
     makeSlider(d3.select('div#filters'), 'Size (sq. ft)', 'Finished Size (Sq.Ft.)', 400, 30)
-    makeSlider(d3.select('div#filters'), 'Size (sq. ft)', 'Finished Size (Sq.Ft.)', 400, 30)
+    //makeSlider(d3.select('div#filters'), 'Size (sq. ft)', 'Finished Size (Sq.Ft.)', 400, 30)
 
     updateMap()
 
