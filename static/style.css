@@ -111,7 +111,7 @@ p.min, p.max{
     margin-top:10px;
     margin-bottom: 2px;
 }
-.filterlabel{
+.filterlabel, .rangelabel, .checkboxlabel{
     margin-left: 10px;
     margin-bottom: 5px;
 }
